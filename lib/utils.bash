@@ -37,12 +37,23 @@ list_all_versions() {
 }
 
 download_release() {
-  local version filename url
+  local version filename url arch platform
   version="$1"
   filename="$2"
 
+  arch=$(uname -m)
+  if [[ ${arch} == x86_64 ]]; then
+    arch=amd64
+  fi
+
+  platform="$(uname | tr A-Z a-z)"
+  if [[ ! (${platform} == linux || ${platform} == darwin) ]]; then
+    echo "Unsupported platform '${platform}' found. Only Linux and Darwin are supported."
+    exit 1
+  fi
+
   # TODO: Adapt the release URL convention for step
-  url="$GH_REPO/archive/v${version}.tar.gz"
+  url="$GH_REPO/releases/download/v${version}/${TOOL_NAME}_${platform}_${version}_${arch}.tar.gz"
 
   echo "* Downloading $TOOL_NAME release $version..."
   curl "${curl_opts[@]}" -o "$filename" -C - "$url" || fail "Could not download $url"
@@ -59,8 +70,7 @@ install_version() {
 
   (
     mkdir -p "$install_path"
-    cp -r "$ASDF_DOWNLOAD_PATH"/* "$install_path"
-
+    cp -r "$ASDF_DOWNLOAD_PATH"/bin/* "$install_path"
     # TODO: Assert step executable exists.
     local tool_cmd
     tool_cmd="$(echo "$TOOL_TEST" | cut -d' ' -f1)"
